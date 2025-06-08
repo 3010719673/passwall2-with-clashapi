@@ -98,6 +98,8 @@ o.cfgvalue = function(t, n)
 			protocol = translate("Balancing")
 		elseif protocol == "_urltest" then
 			protocol = "URLTest"
+		elseif protocol == "_selector" then 
+			protocol = "Selector" 
 		elseif protocol == "_shunt" then
 			protocol = translate("Shunt")
 		elseif protocol == "vmess" then

@@ -68,7 +68,7 @@ end
 o:value("_urltest", translate("URLTest"))
 o:value("_shunt", translate("Shunt"))
 o:value("_iface", translate("Custom Interface"))
-
+o:value("_selector", translate("Selector"))
 o = s:option(Value, _n("iface"), translate("Interface"))
 o.default = "eth1"
 o:depends({ [_n("protocol")] = "_iface" })
@@ -76,6 +76,7 @@ o:depends({ [_n("protocol")] = "_iface" })
 local nodes_table = {}
 local iface_table = {}
 local urltest_table = {}
+local selector_table = {}
 for k, e in ipairs(api.get_valid_nodes()) do
 	if e.node_type == "normal" then
 		nodes_table[#nodes_table + 1] = {
@@ -96,6 +97,12 @@ for k, e in ipairs(api.get_valid_nodes()) do
 			remark = e["remark"]
 		}
 	end
+	if e.protocol == "_selector" then  				
+		selector_table[#selector_table + 1] = {	
+			id = e[".name"],
+			remark = e["remark"]
+		}
+	end	
 end
 
 local socks_list = {}
@@ -146,6 +153,15 @@ o:depends({ [_n("protocol")] = "_urltest" })
 o.default = "0"
 o.description = translate("Interrupt existing connections when the selected outbound has changed.") 
 
+--[[ Selector ]] 
+o = s:option(DynamicList, _n("selector_node"), translate("Selector node list"), translate("List of nodes to select"))
+o:depends({ [_n("protocol")] = "_selector" })
+for k, v in pairs(nodes_table) do o:value(v.id, v.remark) end
+o = s:option(Flag, _n("selector_interrupt_exist_connections"), translate("Interrupt existing connections"))
+o:depends({ [_n("protocol")] = "_selector" })
+o.default = "0"
+o.description = translate("Interrupt existing connections when the selected outbound has changed.") 
+
 -- [[ 分流模块 ]]
 if #nodes_table > 0 then
 	o = s:option(Flag, _n("preproxy_enabled"), translate("Preproxy"))
@@ -157,6 +173,9 @@ if #nodes_table > 0 then
 		o:value(v.id, v.remark)
 	end
 	for k, v in pairs(urltest_table) do
+		o:value(v.id, v.remark)
+	end
+	for k, v in pairs(selector_table) do 
 		o:value(v.id, v.remark)
 	end
 	for k, v in pairs(iface_table) do
@@ -183,6 +202,9 @@ m.uci:foreach(appname, "shunt_rules", function(e)
 				o:value(v.id, v.remark)
 			end
 			for k, v in pairs(urltest_table) do
+				o:value(v.id, v.remark)
+			end
+			for k, v in pairs(selector_table) do 
 				o:value(v.id, v.remark)
 			end
 			for k, v in pairs(iface_table) do
@@ -217,6 +239,9 @@ if #nodes_table > 0 then
 		o:value(v.id, v.remark)
 	end
 	for k, v in pairs(urltest_table) do
+		o:value(v.id, v.remark)
+	end
+	for k, v in pairs(selector_table) do 
 		o:value(v.id, v.remark)
 	end
 	for k, v in pairs(iface_table) do

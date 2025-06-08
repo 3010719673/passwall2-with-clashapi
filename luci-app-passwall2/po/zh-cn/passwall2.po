@@ -1657,6 +1657,15 @@ msgstr "是否真的要恢复客户端默认配置？"
 msgid "_urltest"
 msgstr "URLTest"
 
+msgid "_selector"
+msgstr "Selector"
+
+msgid "Selector node list"
+msgstr "Selector 节点列表"
+
+msgid "List of nodes to select"
+msgstr "要手动选择的节点列表"
+
 msgid "URLTest node list"
 msgstr "URLTest 节点列表"
 

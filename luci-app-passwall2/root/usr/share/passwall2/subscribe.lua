@@ -344,6 +344,37 @@ do
 					end
 				end
 			}
+
+		elseif node.protocol and node.protocol == '_selector' then
+			local flag = "Sing-Box Selector节点[" .. node_id .. "]列表"
+			local currentNodes = {}
+			local newNodes = {}
+			if node.selector_node then
+				for k, node in pairs(node.selector_node) do
+					currentNodes[#currentNodes + 1] = {
+						log = false,
+						node = node,
+						currentNode = node and uci:get_all(appname, node) or nil,
+						remarks = node,
+						set = function(o, server)
+							if o and server and server ~= "nil" then
+								table.insert(o.newNodes, server)
+							end
+						end
+					}
+				end
+			end
+			CONFIG[#CONFIG + 1] = {
+				remarks = flag,
+				currentNodes = currentNodes,
+				newNodes = newNodes,
+				set = function(o, newNodes)
+					if o then
+						if not newNodes then newNodes = o.newNodes end
+						uci:set_list(appname, node_id, "urltest_node", newNodes or {})
+					end
+				end
+			}
 		else
 			--前置代理节点
 			local currentNode = uci:get_all(appname, node_id) or nil

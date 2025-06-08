@@ -862,7 +862,12 @@ function gen_config(var)
 	}
 
 	local experimental = nil
-
+	experimental = {}
+	experimental.clash_api = {
+		external_controller = "0.0.0.0:9090",
+		external_ui = "/usr/share/passwall2/ui/",
+		secret = "passwall2-with-clashapi"
+	}
 	local node = nil
 	if node_id then
 		node = uci:get_all(appname, node_id)
@@ -984,6 +989,51 @@ function gen_config(var)
 			}
 			table.insert(outbounds, outbound)
 			return urltest_tag
+		end
+
+		local function gen_selector(_node)
+			local selector_id = _node[".name"]
+			local selector_tag = "selector-" .. selector_id
+			-- existing selector
+			for _, v in ipairs(outbounds) do
+				if v.tag == selector_tag then
+					return selector_tag
+				end
+			end
+			-- new selector
+			local sl_nodes = _node.selector_node
+			local valid_nodes = {}
+			for i = 1, #sl_nodes do
+				local sl_node_id = sl_nodes[i]
+				local sl_node_tag = "sl-" .. sl_node_id
+				local is_new_sl_node = true
+				for _, outbound in ipairs(outbounds) do
+					if string.sub(outbound.tag, 1, #sl_node_tag) == sl_node_tag then
+						is_new_sl_node = false
+						valid_nodes[#valid_nodes + 1] = outbound.tag
+						break
+					end
+				end
+				if is_new_sl_node then
+					local sl_node = uci:get_all(appname, sl_node_id)
+					local outbound = gen_outbound(flag, sl_node, sl_node_tag)
+					if outbound then
+						outbound.tag = outbound.tag .. ":" .. sl_node.remarks
+						table.insert(outbounds, outbound)
+						valid_nodes[#valid_nodes + 1] = outbound.tag
+					end
+				end
+			end
+			if #valid_nodes == 0 then return nil end
+			local outbound = {
+				type = "selector",
+				tag = selector_tag,
+				outbounds = valid_nodes,
+				interrupt_exist_connections = (_node.selector_interrupt_exist_connections == "true" or _node.selector_interrupt_exist_connections == "1") and
+				true or false
+			}
+			table.insert(outbounds, outbound)
+			return selector_tag
 		end
 
 		local function set_outbound_detour(node, outbound, outbounds_table, shunt_rule_name)
@@ -1142,6 +1192,8 @@ function gen_config(var)
 						end
 					elseif _node.protocol == "_urltest" then
 						rule_outboundTag = gen_urltest(_node)
+					elseif _node.protocol == "_selector" then
+						rule_outboundTag = gen_selector(_node)
 					elseif _node.protocol == "_iface" then
 						if _node.iface then
 							local _outbound = {
@@ -1319,6 +1371,10 @@ function gen_config(var)
 		elseif node.protocol == "_urltest" then
 			if node.urltest_node then
 				COMMON.default_outbound_tag = gen_urltest(node)
+			end
+		elseif node.protocol == "_selector" then
+			if node.selector_node then
+				COMMON.default_outbound_tag = gen_selector(node)
 			end
 		elseif node.protocol == "_iface" then
 			if node.iface then
@@ -1678,7 +1734,6 @@ function gen_config(var)
 					value.domain_strategy = nil
 				end
 			end
-
 			if config.route.final == "block" then
 				config.route.final = nil
 				table.insert(config.route.rules, {
